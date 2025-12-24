@@ -1,0 +1,24 @@
+:root {
+  color-scheme: light;
+  background-color: #f2ede3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Newsreader', serif;
+  color: #1f2937;
+  background: radial-gradient(circle at top left, #fdecc8 0%, #f2ede3 45%, #e8eef4 100%);
+  min-height: 100vh;
+}
+
+p {
+  margin-top: 0;
+}
+
+code {
+  font-family: 'Space Grotesk', sans-serif;
+}

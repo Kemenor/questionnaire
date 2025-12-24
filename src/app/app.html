@@ -1,0 +1,129 @@
+<div class="page">
+  <header class="hero">
+    <div class="hero__inner">
+      <p class="eyebrow">Questionnaire</p>
+      <h1>See what changes after the video.</h1>
+      <p class="lead">
+        Answer the same 15 questions twice. We'll save everything anonymously so your
+        responses can be compared later.
+      </p>
+    </div>
+  </header>
+
+  <main class="card">
+    <div *ngIf="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Signing you in anonymously...</p>
+    </div>
+
+    <ng-container *ngIf="!loading">
+      <div class="meta">
+        <span class="chip">Anonymous UID</span>
+        <span class="mono">{{ uid }}</span>
+      </div>
+
+      <div *ngIf="statusMessage" class="status">{{ statusMessage }}</div>
+      <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+
+      <section *ngIf="phase === 'phase1'" class="section">
+        <div class="section__header">
+          <h2>Phase 1</h2>
+          <p>Answer every question before moving on.</p>
+          <div class="progress">
+            {{ answeredCount(phase1Answers) }} / {{ totalQuestions() }} answered
+          </div>
+        </div>
+
+        <div class="question" *ngFor="let question of questions; index as idx">
+          <div class="prompt">{{ idx + 1 }}. {{ question.prompt }}</div>
+          <div class="options">
+            <label *ngFor="let option of question.options" class="option">
+              <input
+                type="radio"
+                [name]="'phase1-' + question.id"
+                [value]="option"
+                [(ngModel)]="phase1Answers[question.id]"
+              />
+              <span>{{ option }}</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="primary" [disabled]="isSaving" (click)="submitPhase1()">
+          Save phase 1
+        </button>
+      </section>
+
+      <section *ngIf="phase === 'video'" class="section">
+        <div class="section__header">
+          <h2>Watch the video</h2>
+          <p>Once you're done, you can answer the same questions again.</p>
+        </div>
+
+        <div class="video">
+          <video *ngIf="videoUrl" controls [src]="videoUrl"></video>
+          <div *ngIf="!videoUrl" class="video__placeholder">
+            Add your video URL in <code>src/app/app.ts</code>.
+          </div>
+        </div>
+
+        <button class="primary" [disabled]="isSaving" (click)="markVideoWatched()">
+          I watched the video
+        </button>
+      </section>
+
+      <section *ngIf="phase === 'phase2'" class="section">
+        <div class="section__header">
+          <h2>Phase 2</h2>
+          <p>Answer the same 15 questions again. Change anything that feels different.</p>
+          <div class="progress">
+            {{ answeredCount(phase2Answers) }} / {{ totalQuestions() }} answered
+          </div>
+        </div>
+
+        <div class="question" *ngFor="let question of questions; index as idx">
+          <div class="prompt">{{ idx + 1 }}. {{ question.prompt }}</div>
+          <div class="options">
+            <label *ngFor="let option of question.options" class="option">
+              <input
+                type="radio"
+                [name]="'phase2-' + question.id"
+                [value]="option"
+                [(ngModel)]="phase2Answers[question.id]"
+              />
+              <span>{{ option }}</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="primary" [disabled]="isSaving" (click)="submitPhase2()">
+          Save phase 2
+        </button>
+      </section>
+
+      <section *ngIf="phase === 'done'" class="section">
+        <div class="section__header">
+          <h2>All done</h2>
+          <p>Your answers are saved. Thanks for taking the time.</p>
+        </div>
+
+        <div class="summary" *ngIf="changedQuestions().length">
+          <h3>Changes spotted</h3>
+          <ul>
+            <li *ngFor="let question of changedQuestions()">
+              {{ question.prompt }}
+              <span class="change">
+                {{ phase1Answers[question.id] }} -> {{ phase2Answers[question.id] }}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="summary" *ngIf="!changedQuestions().length">
+          <h3>No changes detected</h3>
+          <p>Every answer stayed the same after the video.</p>
+        </div>
+      </section>
+    </ng-container>
+  </main>
+</div>
