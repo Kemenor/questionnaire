@@ -61,9 +61,9 @@
         </div>
 
         <div class="video">
-          <video *ngIf="videoUrl" controls [src]="videoUrl"></video>
-          <div *ngIf="!videoUrl" class="video__placeholder">
-            Add your video URL in <code>src/app/app.ts</code>.
+          <video *ngIf="selectedVideo?.url" controls [src]="selectedVideo?.url"></video>
+          <div *ngIf="!selectedVideo?.url" class="video__placeholder">
+            Add your two video URLs in <code>src/app/app.ts</code>.
           </div>
         </div>
 

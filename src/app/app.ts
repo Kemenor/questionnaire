@@ -24,7 +24,7 @@ type StoredResponse = {
   updatedAt?: unknown;
   phase1?: StoredPhase;
   phase2?: StoredPhase;
-  video?: { watchedAt?: unknown };
+  video?: { watchedAt?: unknown; variant?: string; url?: string };
 };
 
 const DEFAULT_OPTIONS = [
@@ -40,6 +40,13 @@ const QUESTIONS: Question[] = Array.from({ length: 15 }, (_, index) => ({
   prompt: `Question ${index + 1}`,
   options: DEFAULT_OPTIONS
 }));
+
+const VIDEO_OPTIONS = [
+  { id: 'a', url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
+  { id: 'b', url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }
+] as const;
+
+type VideoChoice = (typeof VIDEO_OPTIONS)[number];
 
 @Component({
   selector: 'app-root',
@@ -58,8 +65,7 @@ export class App implements OnInit {
   protected phase1Answers: Record<string, string> = {};
   protected phase2Answers: Record<string, string> = {};
   protected videoWatched = false;
-  protected videoUrl =
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  protected selectedVideo: VideoChoice | null = null;
 
   async ngOnInit(): Promise<void> {
     onAuthStateChanged(auth, async (user) => {
@@ -97,6 +103,7 @@ export class App implements OnInit {
 
     await this.savePhase('phase1', this.phase1Answers);
     this.phase = 'video';
+    await this.ensureVideoAssignment();
     this.statusMessage = 'Phase 1 saved. Watch the video to continue.';
   }
 
@@ -104,6 +111,7 @@ export class App implements OnInit {
     this.errorMessage = '';
     this.statusMessage = '';
 
+    await this.ensureVideoAssignment();
     await this.saveVideoProgress();
     this.videoWatched = true;
 
@@ -151,6 +159,7 @@ export class App implements OnInit {
     this.phase1Answers = data.phase1?.answers ?? {};
     this.phase2Answers = data.phase2?.answers ?? {};
     this.videoWatched = Boolean(data.video?.watchedAt);
+    this.selectedVideo = this.getVideoChoice(data.video?.variant, data.video?.url);
 
     if (data.phase2?.completedAt) {
       this.phase = 'done';
@@ -160,6 +169,10 @@ export class App implements OnInit {
       this.phase = 'video';
     } else {
       this.phase = 'phase1';
+    }
+
+    if (this.phase === 'video' && !this.selectedVideo) {
+      await this.ensureVideoAssignment();
     }
   }
 
@@ -216,7 +229,9 @@ export class App implements OnInit {
           updatedAt: serverTimestamp(),
           createdAt,
           video: {
-            watchedAt: serverTimestamp()
+            watchedAt: serverTimestamp(),
+            variant: this.selectedVideo?.id ?? null,
+            url: this.selectedVideo?.url ?? null
           }
         },
         { merge: true }
@@ -224,5 +239,56 @@ export class App implements OnInit {
     } finally {
       this.isSaving = false;
     }
+  }
+
+  private getVideoChoice(variant?: string, url?: string): VideoChoice | null {
+    if (variant) {
+      const match = VIDEO_OPTIONS.find((option) => option.id === variant);
+      if (match) {
+        return match;
+      }
+    }
+
+    if (url) {
+      const match = VIDEO_OPTIONS.find((option) => option.url === url);
+      if (match) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  private async ensureVideoAssignment(): Promise<void> {
+    if (this.selectedVideo || !this.uid) {
+      return;
+    }
+
+    const choice = VIDEO_OPTIONS[Math.floor(Math.random() * VIDEO_OPTIONS.length)];
+    this.selectedVideo = choice;
+
+    await this.saveVideoAssignment(choice);
+  }
+
+  private async saveVideoAssignment(choice: VideoChoice): Promise<void> {
+    const reference = doc(db, 'responses', this.uid!);
+    const snapshot = await getDoc(reference);
+    const createdAt = snapshot.exists()
+      ? (snapshot.data()['createdAt'] ?? serverTimestamp())
+      : serverTimestamp();
+
+    await setDoc(
+      reference,
+      {
+        uid: this.uid,
+        updatedAt: serverTimestamp(),
+        createdAt,
+        video: {
+          variant: choice.id,
+          url: choice.url
+        }
+      },
+      { merge: true }
+    );
   }
 }
