@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { Question, QUESTIONS, optionToScore } from './questions';
+import { PHASE1_QUESTIONS, PHASE2_QUESTIONS, Question, OPTION_SCORES } from './questions';
 
 type Phase = 'phase1' | 'video' | 'phase2' | 'done';
 
@@ -23,8 +23,8 @@ type StoredResponse = {
 };
 
 const VIDEO_OPTIONS = [
-  { id: 'a', url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-  { id: 'b', url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }
+  { id: 'a', url: '/Hohe_Auspragung.mp4' },
+  { id: 'b', url: '/Niedrige_Auspragung.mp4' }
 ] as const;
 
 type VideoChoice = (typeof VIDEO_OPTIONS)[number];
@@ -36,7 +36,8 @@ type VideoChoice = (typeof VIDEO_OPTIONS)[number];
   styleUrl: './questionnaire.component.scss'
 })
 export class QuestionnaireComponent implements OnInit {
-  protected readonly questions = QUESTIONS;
+  protected readonly phase1Questions = PHASE1_QUESTIONS;
+  protected readonly phase2Questions = PHASE2_QUESTIONS;
   protected uid: string | null = null;
   protected phase: Phase = 'phase1';
   protected loading = true;
@@ -67,28 +68,28 @@ export class QuestionnaireComponent implements OnInit {
     });
   }
 
-  protected answeredCount(answers: Record<string, string>): number {
-    return this.questions.filter((question) => answers[question.id]).length;
+  protected answeredCount(answers: Record<string, string>, questions: Question[]): number {
+    return questions.filter((question) => answers[question.id]).length;
   }
 
-  protected totalQuestions(): number {
-    return this.questions.length;
+  protected totalQuestions(questions: Question[]): number {
+    return questions.length;
   }
 
-  protected isComplete(answers: Record<string, string>): boolean {
-    return this.answeredCount(answers) === this.totalQuestions();
+  protected isComplete(answers: Record<string, string>, questions: Question[]): boolean {
+    return this.answeredCount(answers, questions) === this.totalQuestions(questions);
   }
 
   protected async submitPhase1(): Promise<void> {
     this.errorMessage = '';
     this.statusMessage = '';
 
-    if (!this.isComplete(this.phase1Answers)) {
+    if (!this.isComplete(this.phase1Answers, this.phase1Questions)) {
       this.errorMessage = 'Please answer every question before continuing.';
       return;
     }
 
-    await this.savePhase('phase1', this.mapAnswersToScores(this.phase1Answers));
+    await this.savePhase('phase1', this.mapAnswersToScores(this.phase1Answers, this.phase1Questions));
     this.phase = 'video';
     await this.ensureVideoAssignment();
     this.statusMessage = 'Phase 1 saved. Watch the video to continue.';
@@ -102,10 +103,6 @@ export class QuestionnaireComponent implements OnInit {
     await this.saveVideoProgress();
     this.videoWatched = true;
 
-    if (Object.keys(this.phase2Answers).length === 0) {
-      this.phase2Answers = { ...this.phase1Answers };
-    }
-
     this.phase = 'phase2';
     this.statusMessage = 'Phase 2 unlocked. Re-answer the same questions.';
   }
@@ -114,18 +111,18 @@ export class QuestionnaireComponent implements OnInit {
     this.errorMessage = '';
     this.statusMessage = '';
 
-    if (!this.isComplete(this.phase2Answers)) {
+    if (!this.isComplete(this.phase2Answers, this.phase2Questions)) {
       this.errorMessage = 'Please answer every question before finishing.';
       return;
     }
 
-    await this.savePhase('phase2', this.mapAnswersToScores(this.phase2Answers));
+    await this.savePhase('phase2', this.mapAnswersToScores(this.phase2Answers, this.phase2Questions));
     this.phase = 'done';
     this.statusMessage = 'Thanks! Your responses are saved.';
   }
 
   protected changedQuestions(): Question[] {
-    return this.questions.filter((question) => {
+    return this.phase2Questions.filter((question) => {
       const initial = this.phase1Answers[question.id];
       const after = this.phase2Answers[question.id];
 
@@ -143,8 +140,8 @@ export class QuestionnaireComponent implements OnInit {
 
     const data = snapshot.data() as StoredResponse;
 
-    this.phase1Answers = data.phase1?.answers ?? {};
-    this.phase2Answers = data.phase2?.answers ?? {};
+    this.phase1Answers = this.restoreAnswers(data.phase1?.answers);
+    this.phase2Answers = this.restoreAnswers(data.phase2?.answers);
     this.videoWatched = Boolean(data.video?.watchedAt);
     this.selectedVideo = this.getVideoChoice(data.video?.variant, data.video?.url);
 
@@ -279,9 +276,42 @@ export class QuestionnaireComponent implements OnInit {
     );
   }
 
-  private mapAnswersToScores(answers: Record<string, string>): Record<string, number> {
+  private mapAnswersToScores(
+    answers: Record<string, string>,
+    questions: Question[]
+  ): Record<string, number> {
+    const saveableIds = new Set(
+      questions.filter((question) => question.save !== false).map((question) => question.id)
+    );
     return Object.fromEntries(
-      Object.entries(answers).map(([questionId, value]) => [questionId, optionToScore(value) ?? 0])
+      Object.entries(answers)
+        .filter(([questionId]) => saveableIds.has(questionId))
+        .map(([questionId, value]) => {
+          if (OPTION_SCORES[value] !== undefined) {
+            return [questionId, OPTION_SCORES[value]];
+          }
+          const numericValue = Number(value);
+          return [questionId, Number.isNaN(numericValue) ? 0 : numericValue];
+        })
+    );
+  }
+
+  private restoreAnswers(answers?: Record<string, number>): Record<string, string> {
+    if (!answers) {
+      return {};
+    }
+
+    const optionMap = new Map(PHASE1_QUESTIONS.map((question) => [question.id, question.options]));
+    return Object.fromEntries(
+      Object.entries(answers).map(([questionId, value]) => {
+        const options = optionMap.get(questionId);
+        const numericValue = typeof value === 'number' ? value : Number(value);
+        if (options && Number.isInteger(numericValue) && numericValue >= 1 && numericValue <= 5) {
+          return [questionId, options[numericValue - 1]];
+        }
+
+        return [questionId, String(value)];
+      })
     );
   }
 }

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { QUESTIONS, optionToScore } from '../questionnaire/questions';
+import { PHASE1_QUESTIONS, PHASE2_QUESTIONS, optionToScore } from '../questionnaire/questions';
 
 type StoredPhase = {
   answers?: Record<string, number | string>;
@@ -35,6 +35,8 @@ export class AdminComponent implements OnInit {
   protected errorMessage = '';
   protected statusMessage = '';
   protected responses: StoredResponse[] = [];
+  private readonly phase1Questions = PHASE1_QUESTIONS.filter((question) => question.save !== false);
+  private readonly phase2Questions = PHASE2_QUESTIONS;
 
   async ngOnInit(): Promise<void> {
     onAuthStateChanged(auth, async (user) => {
@@ -113,8 +115,8 @@ export class AdminComponent implements OnInit {
       'videoVariant',
       'videoUrl',
       'videoWatchedAt',
-      ...QUESTIONS.map((question) => `phase1_${question.id}`),
-      ...QUESTIONS.map((question) => `phase2_${question.id}`)
+      ...this.phase1Questions.map((question) => `phase1_${question.id}`),
+      ...this.phase2Questions.map((question) => `phase2_${question.id}`)
     ];
   }
 
@@ -128,8 +130,11 @@ export class AdminComponent implements OnInit {
       videoWatchedAt: this.formatTimestamp(response.video?.watchedAt)
     };
 
-    for (const question of QUESTIONS) {
+    for (const question of this.phase1Questions) {
       row[`phase1_${question.id}`] = this.normalizeAnswer(response.phase1?.answers?.[question.id]);
+    }
+
+    for (const question of this.phase2Questions) {
       row[`phase2_${question.id}`] = this.normalizeAnswer(response.phase2?.answers?.[question.id]);
     }
 

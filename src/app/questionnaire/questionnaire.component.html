@@ -1,11 +1,11 @@
 <div class="page">
   <header class="hero">
     <div class="hero__inner">
-      <p class="eyebrow">Questionnaire</p>
-      <h1>See what changes after the video.</h1>
+      <p class="eyebrow">E-Auto Umfrage</p>
+      <h1>Umfrage und Aufklärung zur E-Mobilität</h1>
       <p class="lead">
-        Answer the same 15 questions twice. We'll save everything anonymously so your
-        responses can be compared later.
+        Bitte beantworten Sie die folgenden Fragen ehrlich und spontan. Es gibt keine richtigen oder falschen Antworten.
+        Die Daten werden anonym gespeichert und nur für Forschungszwecke verwendet.
       </p>
     </div>
   </header>
@@ -13,14 +13,10 @@
   <main class="card">
     <div *ngIf="loading" class="loading">
       <div class="spinner"></div>
-      <p>Signing you in anonymously...</p>
+      <p>Creating Cookie...</p>
     </div>
 
     <ng-container *ngIf="!loading">
-      <div class="meta">
-        <span class="chip">Anonymous UID</span>
-        <span class="mono">{{ uid }}</span>
-      </div>
 
       <div *ngIf="statusMessage" class="status">{{ statusMessage }}</div>
       <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
@@ -28,13 +24,13 @@
       <section *ngIf="phase === 'phase1'" class="section">
         <div class="section__header">
           <h2>Phase 1</h2>
-          <p>Answer every question before moving on.</p>
           <div class="progress">
-            {{ answeredCount(phase1Answers) }} / {{ totalQuestions() }} answered
+            {{ answeredCount(phase1Answers, phase1Questions) }} /
+            {{ totalQuestions(phase1Questions) }} answered
           </div>
         </div>
 
-        <div class="question" *ngFor="let question of questions; index as idx">
+        <div class="question" *ngFor="let question of phase1Questions; index as idx">
           <div class="prompt">{{ idx + 1 }}. {{ question.prompt }}</div>
           <div class="options">
             <label *ngFor="let option of question.options" class="option">
@@ -50,14 +46,14 @@
         </div>
 
         <button class="primary" [disabled]="isSaving" (click)="submitPhase1()">
-          Save phase 1
+          Speichern und zum Video gehen
         </button>
       </section>
 
       <section *ngIf="phase === 'video'" class="section">
         <div class="section__header">
-          <h2>Watch the video</h2>
-          <p>Once you're done, you can answer the same questions again.</p>
+          <h2>Bitte schauen sie sich das kurze Informationsvideo an</h2>
+          <p>Nachdem sie fertig sind kommen nochmals 10 Fragen.</p>
         </div>
 
         <div class="video">
@@ -68,7 +64,7 @@
         </div>
 
         <button class="primary" [disabled]="isSaving" (click)="markVideoWatched()">
-          I watched the video
+          Ich habe das Video angesehen
         </button>
       </section>
 
@@ -77,11 +73,12 @@
           <h2>Phase 2</h2>
           <p>Answer the same 15 questions again. Change anything that feels different.</p>
           <div class="progress">
-            {{ answeredCount(phase2Answers) }} / {{ totalQuestions() }} answered
+            {{ answeredCount(phase2Answers, phase2Questions) }} /
+            {{ totalQuestions(phase2Questions) }} answered
           </div>
         </div>
 
-        <div class="question" *ngFor="let question of questions; index as idx">
+        <div class="question" *ngFor="let question of phase2Questions; index as idx">
           <div class="prompt">{{ idx + 1 }}. {{ question.prompt }}</div>
           <div class="options">
             <label *ngFor="let option of question.options" class="option">
@@ -97,18 +94,18 @@
         </div>
 
         <button class="primary" [disabled]="isSaving" (click)="submitPhase2()">
-          Save phase 2
+          Speichern und abschließen
         </button>
       </section>
 
       <section *ngIf="phase === 'done'" class="section">
         <div class="section__header">
-          <h2>All done</h2>
-          <p>Your answers are saved. Thanks for taking the time.</p>
+          <h2>Fertig</h2>
+          <p>Ihre Antworten wurden gespeichert. Vielen Dank.</p>
         </div>
 
         <div class="summary" *ngIf="changedQuestions().length">
-          <h3>Changes spotted</h3>
+          <h3>Änderungen Ihrer Antworten</h3>
           <ul>
             <li *ngFor="let question of changedQuestions()">
               {{ question.prompt }}
@@ -120,8 +117,8 @@
         </div>
 
         <div class="summary" *ngIf="!changedQuestions().length">
-          <h3>No changes detected</h3>
-          <p>Every answer stayed the same after the video.</p>
+          <h3>Keine Änderungen</h3>
+          <p>Alle Antworten sind gleichgebleben.</p>
         </div>
       </section>
     </ng-container>
