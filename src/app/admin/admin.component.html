@@ -1,0 +1,62 @@
+<div class="admin">
+  <header class="admin__hero">
+    <h1>Admin Console</h1>
+    <p>Sign in with your Firebase email/password admin account.</p>
+  </header>
+
+  <section class="admin__card" *ngIf="loading">
+    <div class="loading">Loading auth state...</div>
+  </section>
+
+  <section class="admin__card" *ngIf="!loading && !adminUser">
+    <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+    <div *ngIf="statusMessage" class="status">{{ statusMessage }}</div>
+
+    <label class="field">
+      <span>Email</span>
+      <input type="email" [(ngModel)]="email" placeholder="admin@example.com" />
+    </label>
+
+    <label class="field">
+      <span>Password</span>
+      <input type="password" [(ngModel)]="password" placeholder="••••••••" />
+    </label>
+
+    <button class="primary" [disabled]="isWorking" (click)="login()">
+      Sign in
+    </button>
+  </section>
+
+  <section class="admin__card" *ngIf="!loading && adminUser">
+    <div class="meta">
+      <span>Signed in as</span>
+      <strong>{{ adminUser.email }}</strong>
+    </div>
+
+    <div class="actions">
+      <button class="ghost" [disabled]="isWorking" (click)="refresh()">Refresh</button>
+      <button class="ghost" [disabled]="isWorking" (click)="exportCsv()">
+        Export CSV ({{ responseCount() }})
+      </button>
+      <button class="danger" [disabled]="isWorking" (click)="logout()">Sign out</button>
+    </div>
+
+    <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
+    <div *ngIf="statusMessage" class="status">{{ statusMessage }}</div>
+
+    <div class="table">
+      <div class="table__header">
+        <span>UID</span>
+        <span>Phase 1 done</span>
+        <span>Phase 2 done</span>
+        <span>Video</span>
+      </div>
+      <div class="table__row" *ngFor="let response of responses">
+        <span>{{ response.uid }}</span>
+        <span>{{ response.phase1?.completedAt ? 'Yes' : 'No' }}</span>
+        <span>{{ response.phase2?.completedAt ? 'Yes' : 'No' }}</span>
+        <span>{{ response.video?.variant ?? '-' }}</span>
+      </div>
+    </div>
+  </section>
+</div>
