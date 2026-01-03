@@ -92,7 +92,7 @@ export class QuestionnaireComponent implements OnInit {
     await this.savePhase('phase1', this.mapAnswersToScores(this.phase1Answers, this.phase1Questions));
     this.phase = 'video';
     await this.ensureVideoAssignment();
-    this.statusMessage = 'Phase 1 saved. Watch the video to continue.';
+    this.statusMessage = 'Phase 1 gespeichert. Bitte schauen Sie sich das Video an.';
   }
 
   protected async markVideoWatched(): Promise<void> {
@@ -104,7 +104,7 @@ export class QuestionnaireComponent implements OnInit {
     this.videoWatched = true;
 
     this.phase = 'phase2';
-    this.statusMessage = 'Phase 2 unlocked. Re-answer the same questions.';
+    this.statusMessage = 'Phase 2 beginnt. Bitte stufen sie die folgenden Zehn Fragen nochmals ein.';
   }
 
   protected async submitPhase2(): Promise<void> {
@@ -112,13 +112,13 @@ export class QuestionnaireComponent implements OnInit {
     this.statusMessage = '';
 
     if (!this.isComplete(this.phase2Answers, this.phase2Questions)) {
-      this.errorMessage = 'Please answer every question before finishing.';
+      this.errorMessage = 'Bitte alle fragen ausfüllen vor dem weitergehen.';
       return;
     }
 
     await this.savePhase('phase2', this.mapAnswersToScores(this.phase2Answers, this.phase2Questions));
     this.phase = 'done';
-    this.statusMessage = 'Thanks! Your responses are saved.';
+    this.statusMessage = 'Vielen Dank! Ihre Antworten wurden gespeichert.';
   }
 
   protected changedQuestions(): Question[] {

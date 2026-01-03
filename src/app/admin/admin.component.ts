@@ -115,8 +115,8 @@ export class AdminComponent implements OnInit {
       'videoVariant',
       'videoUrl',
       'videoWatchedAt',
-      ...this.phase1Questions.map((question) => `phase1_${question.id}`),
-      ...this.phase2Questions.map((question) => `phase2_${question.id}`)
+      ...this.phase1Questions.map((question) => `phase1: ${question.prompt}`),
+      ...this.phase2Questions.map((question) => `phase2: ${question.prompt}`)
     ];
   }
 
@@ -131,11 +131,15 @@ export class AdminComponent implements OnInit {
     };
 
     for (const question of this.phase1Questions) {
-      row[`phase1_${question.id}`] = this.normalizeAnswer(response.phase1?.answers?.[question.id]);
+      row[`phase1: ${question.prompt}`] = this.normalizeAnswer(
+        response.phase1?.answers?.[question.id]
+      );
     }
 
     for (const question of this.phase2Questions) {
-      row[`phase2_${question.id}`] = this.normalizeAnswer(response.phase2?.answers?.[question.id]);
+      row[`phase2: ${question.prompt}`] = this.normalizeAnswer(
+        response.phase2?.answers?.[question.id]
+      );
     }
 
     return headers.map((header) => this.escapeCsv(row[header] ?? ''));
